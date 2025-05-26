@@ -11,7 +11,7 @@ struct Student {
 // Function to encrypt student data
 void encryptData(char *data) {
     while (*data) {
-        *data = *data + 3; // Simple Caesar Cipher Encryption
+        *data ^= 3; // Simple XOR encryption
         data++;
     }
 }
@@ -19,7 +19,7 @@ void encryptData(char *data) {
 // Function to decrypt student data
 void decryptData(char *data) {
     while (*data) {
-        *data = *data - 3; // Reversing the encryption
+        *data ^= 3; // Reverse XOR encryption
         data++;
     }
 }
@@ -27,37 +27,43 @@ void decryptData(char *data) {
 // Password check for admin access
 int checkPassword() {
     char password[20];
-    printf("\n🔒 Enter admin password: ");
-    scanf("%s", password);
-    return strcmp(password, "admin123") == 0; // Change password as needed
+    printf("\nEnter admin password: ");
+    scanf("%19s", password); // Prevent buffer overflow
+    return strcmp(password, "admin123") == 0;
 }
 
 void addStudent() {
     if (!checkPassword()) {
-        printf("❌ Access Denied!\n");
+        printf("Access Denied!\n");
         return;
     }
 
-    FILE *file = fopen("students.bin", "ab"); // Binary file storage
+    FILE *file = fopen("students.bin", "ab");
+    if (!file) {
+        printf("Error opening file!\n");
+        return;
+    }
+
     struct Student s;
     printf("Enter Name, Roll No, Marks: ");
     scanf("%s %d %f", s.name, &s.roll_no, &s.marks);
-    encryptData(s.name); // Encrypt name before saving
+    encryptData(s.name);
     fwrite(&s, sizeof(struct Student), 1, file);
     fclose(file);
-    printf("✅ Student added successfully!\n");
+    printf("Student added successfully!\n");
 }
 
 void viewStudents() {
     FILE *file = fopen("students.bin", "rb");
     if (!file) {
-        printf("⚠ No records found!\n");
+        printf("No records found!\n");
         return;
     }
+
     struct Student s;
-    printf("\n📌 Student Records:\n");
+    printf("\nStudent Records:\n");
     while (fread(&s, sizeof(struct Student), 1, file)) {
-        decryptData(s.name); // Decrypt name for viewing
+        decryptData(s.name);
         printf("Name: %s | Roll No: %d | Marks: %.2f\n", s.name, s.roll_no, s.marks);
     }
     fclose(file);
@@ -68,23 +74,28 @@ void searchStudent() {
     printf("Enter Roll No to search: ");
     scanf("%d", &rollNo);
     FILE *file = fopen("students.bin", "rb");
+    if (!file) {
+        printf("Error opening file!\n");
+        return;
+    }
+
     struct Student s;
     int found = 0;
     while (fread(&s, sizeof(struct Student), 1, file)) {
         decryptData(s.name);
         if (s.roll_no == rollNo) {
-            printf("✅ Student Found: Name: %s | Marks: %.2f\n", s.name, s.marks);
+            printf("Student Found: Name: %s | Marks: %.2f\n", s.name, s.marks);
             found = 1;
             break;
         }
     }
     fclose(file);
-    if (!found) printf("❌ Student not found!\n");
+    if (!found) printf("Student not found!\n");
 }
 
 void deleteStudent() {
     if (!checkPassword()) {
-        printf("❌ Access Denied!\n");
+        printf("Access Denied!\n");
         return;
     }
 
@@ -93,6 +104,11 @@ void deleteStudent() {
     scanf("%d", &rollNo);
     FILE *file = fopen("students.bin", "rb");
     FILE *temp = fopen("temp.bin", "wb");
+    if (!file || !temp) {
+        printf("Error opening files!\n");
+        return;
+    }
+
     struct Student s;
     int found = 0;
     while (fread(&s, sizeof(struct Student), 1, file)) {
@@ -108,16 +124,20 @@ void deleteStudent() {
     rename("temp.bin", "students.bin");
 
     if (found)
-        printf("✅ Student deleted successfully!\n");
+        printf("Student deleted successfully!\n");
     else
-        printf("❌ Student not found!\n");
+        printf("Student not found!\n");
 }
 
-// Sorting Students by Marks
+// Sorting Students by Marks Using `qsort`
+int compareMarks(const void *a, const void *b) {
+    return ((struct Student*)b)->marks - ((struct Student*)a)->marks;
+}
+
 void sortStudents() {
     FILE *file = fopen("students.bin", "rb");
     if (!file) {
-        printf("⚠ No records found!\n");
+        printf("No records found!\n");
         return;
     }
 
@@ -129,20 +149,11 @@ void sortStudents() {
     }
     fclose(file);
 
-    // Sorting by Marks (Bubble Sort)
-    for (int i = 0; i < count - 1; i++) {
-        for (int j = 0; j < count - i - 1; j++) {
-            if (students[j].marks < students[j + 1].marks) {
-                struct Student temp = students[j];
-                students[j] = students[j + 1];
-                students[j + 1] = temp;
-            }
-        }
-    }
+    qsort(students, count, sizeof(struct Student), compareMarks);
 
-    // Display sorted records
-    printf("\n📌 Sorted Student Records (By Marks):\n");
-    for (int i = 0; i < count; i++) {
+    printf("\nSorted Student Records (By Marks):\n");
+    int i;
+    for ( i = 0; i < count; i++) {
         printf("Name: %s | Roll No: %d | Marks: %.2f\n", students[i].name, students[i].roll_no, students[i].marks);
     }
 }
@@ -150,8 +161,8 @@ void sortStudents() {
 int main() {
     int choice;
     while (1) {
-        printf("\n🔹 Student Record System 🔹\n");
-        printf("1️⃣ Add Student\n2️⃣ View Students\n3️⃣ Search Student\n4️⃣ Delete Student\n5️⃣ Sort Students by Marks\n6️⃣ Exit\n");
+        printf("\nStudent Record System\n");
+        printf("1. Add Student\n2. View Students\n3. Search Student\n4. Delete Student\n5. Sort Students by Marks\n6. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
@@ -161,8 +172,8 @@ int main() {
             case 3: searchStudent(); break;
             case 4: deleteStudent(); break;
             case 5: sortStudents(); break;
-            case 6: printf("🚀 Exiting...\n"); return 0;
-            default: printf("⚠ Invalid choice! Try again.\n");
+            case 6: printf("Exiting...\n"); return 0;
+            default: printf("Invalid choice! Try again.\n");
         }
     }
 }
