@@ -13,6 +13,7 @@ The **Student Record Management System** is a **C-based application** that enabl
 ✅ **Sorting System** – Arrange students by marks  
 ✅ **Data Encryption** – Encrypt student names for security  
 ✅ **Password Protection** – Restricts modification access  
+✅ **Password ** - admin123
 
 ## 🔧 Technologies Used  
 
